@@ -1,9 +1,13 @@
 #include <stdlib.h>
 #include "stm32f10x.h"
+#include "OLED.h"
 #include "OLED_Font.h"
 
-#define JUMP_TOTAL 18
-#define PEAK 24
+#define JUMP_TOTAL 60
+#define PEAK 40
+
+#define CACTUS_DISTANCE 100          
+#define CACTUS_NUM_MAX 5
 
 /*用于存储屏幕上的仙人掌位置和类型*/
 typedef struct{
@@ -92,29 +96,29 @@ void Game_Start(void)
 		cactus_width = 8;
 		for(uint8_t i = 0;i < cactus_width;i++){
 			if(i+cactus.position > 127) break;
-			FrameBuffer[5][i+cactus.position] = CACTUS_1[i];
-			FrameBuffer[6][i+cactus.position] = CACTUS_1[i+cactus_width];
+			FrameBuffer[6][i+cactus.position] = CACTUS_1[i];
+			FrameBuffer[7][i+cactus.position] = CACTUS_1[i+cactus_width];
 		}
 	}else if(cactus.cactus_array[cactus.first] == 1){
 		cactus_width = 16;
 		for(uint8_t i = 0;i < cactus_width;i++){
 			if(i+cactus.position > 127) break;
-			FrameBuffer[5][i+cactus.position] = CACTUS_2[i];
-			FrameBuffer[6][i+cactus.position] = CACTUS_2[i+cactus_width];
+			FrameBuffer[6][i+cactus.position] = CACTUS_2[i];
+			FrameBuffer[7][i+cactus.position] = CACTUS_2[i+cactus_width];
 		}
 	}else if(cactus.cactus_array[cactus.first] == 2){
 		cactus_width = 24;
 		for(uint8_t i = 0;i < cactus_width;i++){
 			if(i+cactus.position > 127) break;
-			FrameBuffer[5][i+cactus.position] = CACTUS_3[i];
-			FrameBuffer[6][i+cactus.position] = CACTUS_3[i+cactus_width];
+			FrameBuffer[6][i+cactus.position] = CACTUS_3[i];
+			FrameBuffer[7][i+cactus.position] = CACTUS_3[i+cactus_width];
 		}
 	}else if(cactus.cactus_array[cactus.first] == 3){
 		cactus_width = 24;
 		for(uint8_t i = 0;i < cactus_width;i++){
 			if(i+cactus.position > 127) break;
-			FrameBuffer[5][i+cactus.position] = CACTUS_4[i];
-			FrameBuffer[6][i+cactus.position] = CACTUS_4[i+cactus_width];
+			FrameBuffer[6][i+cactus.position] = CACTUS_4[i];
+			FrameBuffer[7][i+cactus.position] = CACTUS_4[i+cactus_width];
 		}
 	}
 }
@@ -126,10 +130,13 @@ void Game_Start(void)
 	*/
 void Game_Refresh(void)
 {
+	
+	OLED_SetCursor(0,0);
+	
 	static uint16_t round=1;
 	/*向缓存中刷入地平线*/
 	for(uint8_t i=0;i<128;i++){
-		 FrameBuffer[7][i]=GROUND[(i+round)%sizeof(GROUND)];
+		 FrameBuffer[7][i]=GROUND[(i+round)%597];
 	}
 	round=(round+1)%597;
 	
@@ -151,12 +158,9 @@ void Game_Refresh(void)
 		}
 	}else{
 		/*向缓存中刷入空中的龙*/
-		uint8_t phase = JUMP_TOTAL - JumpNum;																						//当前帧的相位
-		for(uint8_t i=0;i<8;i++){
-				FrameBuffer[5][i+8]=DINO_JUMP[0][i];
-		}
-		int height = phase * (JUMP_TOTAL - phase) * 4 * PEAK / (JUMP_TOTAL * JUMP_TOTAL);//龙的脚底的高度
-		if(phase==0||phase==18){																												//0号帧或者18号帧
+		uint32_t phase = JUMP_TOTAL - JumpNum;																						//当前帧的相位
+		uint32_t height = phase * (JUMP_TOTAL - phase) * 4 * PEAK / (JUMP_TOTAL * JUMP_TOTAL);//龙的脚底的高度
+		if(phase==0||phase==JUMP_TOTAL){																												//0号帧或者18号帧
 			for(uint8_t i=0;i<16;i++){
 				FrameBuffer[5][i+8]=DINO_JUMP[0][i];
 			}
@@ -166,7 +170,7 @@ void Game_Refresh(void)
 			for(uint8_t i=0;i<16;i++){
 				FrameBuffer[7][i+8]=DINO_JUMP[0][i+32];
 			}
-			if(phase==18) JumpFlag=0;
+			if(phase==JUMP_TOTAL) JumpFlag=0;
 			else JumpNum--;
 		}else{																																					//1-17号帧
 			uint8_t row = 7 - height / 8;																									//底部所在行
@@ -180,8 +184,10 @@ void Game_Refresh(void)
 			for(uint8_t i=0;i<16;i++){
 				FrameBuffer[row-2][i+8]=(DINO_JUMP[0][i+16] << div) | (DINO_JUMP[0][i] >> (8 - div));
 			}
-			for(uint8_t i=0;i<16;i++){
-				FrameBuffer[row-3][i+8]=DINO_JUMP[0][i] << div;
+			if(row-3>=0){
+				for(uint8_t i=0;i<16;i++){
+					FrameBuffer[row-3][i+8]=DINO_JUMP[0][i] << div;
+				}
 			}
 			JumpNum--;
 		}
@@ -204,52 +210,52 @@ void Game_Refresh(void)
 	if(cactus.position + first_cactus_width < 0){
 		cactus.first=(cactus.first+1)%5;
 		cactus.num--;
-		cactus.position+=60;
+		cactus.position+=CACTUS_DISTANCE;
 	}
 	
-	if(cactus.distance == 61){
+	if(cactus.distance == CACTUS_DISTANCE+1){
 		cactus.distance = 1;
-		cactus.cactus_array[(cactus.first+cactus.num)%5] = rand()%4;
+		cactus.cactus_array[(cactus.first+cactus.num)%CACTUS_NUM_MAX] = rand()%4;
 		cactus.num++;
 	}
 	
 	for(int k = 0;k < cactus.num;k++){
 		uint8_t cactus_width;
-		if(cactus.cactus_array[(cactus.first+k)%5] == 0){
+		if(cactus.cactus_array[(cactus.first+k)%CACTUS_NUM_MAX] == 0){
 			cactus_width = 8;
 			for(uint8_t i = 0;i < cactus_width;i++){
-				if(i+cactus.position+k*60 > 127) break;
-				if(i+cactus.position+k*60 < 0) continue;
-				if(FrameBuffer[5][i+cactus.position+k*60]!=0x00 || FrameBuffer[6][i+cactus.position+k*60]!=0x00){ crash_flag = 1;}
-				FrameBuffer[5][i+cactus.position+k*60] = CACTUS_1[i];
-				FrameBuffer[6][i+cactus.position+k*60] = CACTUS_1[i+cactus_width];
+				if(i+cactus.position+k*CACTUS_DISTANCE > 127) break;
+				if(i+cactus.position+k*CACTUS_DISTANCE < 0) continue;
+				if(FrameBuffer[6][i+cactus.position+k*CACTUS_DISTANCE]!=0x00){ crash_flag = 1;}
+				FrameBuffer[6][i+cactus.position+k*CACTUS_DISTANCE] = CACTUS_1[i];
+				FrameBuffer[7][i+cactus.position+k*CACTUS_DISTANCE] = CACTUS_1[i+cactus_width];
 			}
-		}else if(cactus.cactus_array[(cactus.first+k)%5] == 1){
+		}else if(cactus.cactus_array[(cactus.first+k)%CACTUS_NUM_MAX] == 1){
 			cactus_width = 16;
 			for(uint8_t i = 0;i < cactus_width;i++){
-				if(i+cactus.position+k*60 > 127) break;
-				if(i+cactus.position+k*60 < 0) continue;
-				if(FrameBuffer[5][i+cactus.position+k*60]!=0x00 || FrameBuffer[6][i+cactus.position+k*60]!=0x00){ crash_flag = 1;}
-				FrameBuffer[5][i+cactus.position+k*60] = CACTUS_2[i];
-				FrameBuffer[6][i+cactus.position+k*60] = CACTUS_2[i+cactus_width];
+				if(i+cactus.position+k*CACTUS_DISTANCE > 127) break;
+				if(i+cactus.position+k*CACTUS_DISTANCE < 0) continue;
+				if(FrameBuffer[6][i+cactus.position+k*CACTUS_DISTANCE]!=0x00){ crash_flag = 1;}
+				FrameBuffer[6][i+cactus.position+k*CACTUS_DISTANCE] = CACTUS_2[i];
+				FrameBuffer[7][i+cactus.position+k*CACTUS_DISTANCE] = CACTUS_2[i+cactus_width];
 			}
 		}else if(cactus.cactus_array[(cactus.first+k)%5] == 2){
 			cactus_width = 24;
 			for(uint8_t i = 0;i < cactus_width;i++){
-				if(i+cactus.position+k*60 > 127) break;
-				if(i+cactus.position+k*60 < 0) continue;
-				if(FrameBuffer[5][i+cactus.position+k*60]!=0x00 || FrameBuffer[6][i+cactus.position+k*60]!=0x00){ crash_flag = 1;}
-				FrameBuffer[5][i+cactus.position+k*60] = CACTUS_3[i];
-				FrameBuffer[6][i+cactus.position+k*60] = CACTUS_3[i+cactus_width];
+				if(i+cactus.position+k*CACTUS_DISTANCE > 127) break;
+				if(i+cactus.position+k*CACTUS_DISTANCE < 0) continue;
+				if(FrameBuffer[6][i+cactus.position+k*CACTUS_DISTANCE]!=0x00){ crash_flag = 1;}
+				FrameBuffer[6][i+cactus.position+k*CACTUS_DISTANCE] = CACTUS_3[i];
+				FrameBuffer[7][i+cactus.position+k*CACTUS_DISTANCE] = CACTUS_3[i+cactus_width];
 			}
 		}else if(cactus.cactus_array[(cactus.first+k)%5] == 3){
 			cactus_width = 24;
 			for(uint8_t i = 0;i < cactus_width;i++){
-				if(i+cactus.position+k*60 > 127) break;
-				if(i+cactus.position+k*60 < 0) continue;
-				if(FrameBuffer[5][i+cactus.position+k*60]!=0x00 || FrameBuffer[6][i+cactus.position+k*60]!=0x00){ crash_flag = 1;}
-				FrameBuffer[5][i+cactus.position+k*60] = CACTUS_4[i];
-				FrameBuffer[6][i+cactus.position+k*60] = CACTUS_4[i+cactus_width];
+				if(i+cactus.position+k*CACTUS_DISTANCE > 127) break;
+				if(i+cactus.position+k*CACTUS_DISTANCE < 0) continue;
+				if(FrameBuffer[6][i+cactus.position+k*CACTUS_DISTANCE]!=0x00){ crash_flag = 1;}
+				FrameBuffer[6][i+cactus.position+k*CACTUS_DISTANCE] = CACTUS_4[i];
+				FrameBuffer[7][i+cactus.position+k*CACTUS_DISTANCE] = CACTUS_4[i+cactus_width];
 			}
 		}
 	}

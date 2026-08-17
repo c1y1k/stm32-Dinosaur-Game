@@ -168,7 +168,7 @@ void EXTI1_IRQHandler(void)      // PB1：跳跃
 	{
 		if(JumpFlag==0){
 			JumpFlag=1;
-			JumpNum=18;
+			JumpNum=60;
 		}
 		EXTI_ClearITPendingBit(EXTI_Line1);
 	}

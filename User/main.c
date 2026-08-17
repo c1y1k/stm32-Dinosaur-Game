@@ -11,7 +11,6 @@ int main(void)
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);//中断分组配置
 	Key_Init();			//案件初始化
 	OLED_Init();		//屏幕初始化
-
 	
 	while(1){
 		StartFlag=0;

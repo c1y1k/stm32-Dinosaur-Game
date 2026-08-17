@@ -1,4 +1,5 @@
 #include "stm32f10x.h"
+#include "OLED_Font.h"
 
 /*引脚配置*/
 #define OLED_W_SCL(x)		GPIO_WriteBit(GPIOB, GPIO_Pin_8, (BitAction)(x))
@@ -98,13 +99,32 @@ void OLED_SetCursor(uint8_t Y, uint8_t X)
   */
 void OLED_Refresh(uint8_t *Data)
 {
-	OLED_SetCursor(0,0);
-	OLED_I2C_Start();
-	OLED_I2C_SendByte(0x78);		//从机地址
-	OLED_I2C_SendByte(0x40);		//写数据
 	for(uint8_t i=0;i<8;i++){
+		OLED_SetCursor(i,0);
+		OLED_I2C_Start();
+		OLED_I2C_SendByte(0x78);		//从机地址
+		OLED_I2C_SendByte(0x40);		//写数据
 		for(uint8_t j=0;j<128;j++){
 			OLED_I2C_SendByte(Data[i*128+j]);
+		}
+	}
+	OLED_I2C_Stop();
+}
+
+/**
+  * @brief  OLED清屏
+  * @param  无
+  * @retval 无
+  */
+void OLED_Clear(void)
+{  
+	for(uint8_t i=0;i<8;i++){
+		OLED_SetCursor(i,0);
+		OLED_I2C_Start();
+		OLED_I2C_SendByte(0x78);		//从机地址
+		OLED_I2C_SendByte(0x40);		//写数据
+		for(uint8_t j=0;j<128;j++){
+			OLED_I2C_SendByte(0x00);
 		}
 	}
 	OLED_I2C_Stop();
@@ -166,6 +186,6 @@ void OLED_Init(void)
 	OLED_WriteCommand(0x00);   // 0x00=水平寻址  0x01=垂直  0x02=页寻址(默认)
 
 	OLED_WriteCommand(0xAF);	//开启显示
-		
-	OLED_Clear();				//OLED清屏
+	
+	OLED_Clear();
 }

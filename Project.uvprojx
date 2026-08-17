@@ -710,6 +710,11 @@
               <FileType>5</FileType>
               <FilePath>.\Hardware\MyTimer2.h</FilePath>
             </File>
+            <File>
+              <FileName>OLED_Font.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\OLED_Font.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
